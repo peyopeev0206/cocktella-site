@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Party Menu — Cocktella</title>
+  <style>
+    /* ── Reset ──────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Base ───────────────────────────────────────────────────────────── */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #181A1B;
+      color: #F0F0F0;
+      min-height: 100vh;
+      /* bottom padding clears the sticky footer */
+      padding-bottom: 96px;
+    }
+
+    /* ── Shell states (loading / ended / error) ─────────────────────────── */
+    .shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+    .shell-icon  { font-size: 3.5rem; margin-bottom: 1.25rem; }
+    .shell h1    { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.6rem; }
+    .shell p     { color: #888; font-size: 0.95rem; line-height: 1.6; max-width: 340px; }
+
+    /* Loading spinner */
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #333;
+      border-top-color: #F57C00;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 1.25rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Retry button */
+    .retry-btn {
+      margin-top: 1.25rem;
+      display: inline-block;
+      background: #F57C00;
+      color: #181A1B;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.75rem 2rem;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .retry-btn:hover { opacity: 0.9; }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .header {
+      padding: 2rem 1.25rem 1.5rem;
+      text-align: center;
+      border-bottom: 1px solid #2C2E30;
+    }
+    .header-brand {
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 0.75rem;
+    }
+    .party-name {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+    .party-desc {
+      color: #999;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── Recipe grid ─────────────────────────────────────────────────────── */
+    .recipes {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .card {
+      background: #232526;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #2C2E30;
+    }
+    .card-img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      display: block;
+    }
+    .card-body    { padding: 1.25rem; }
+    .recipe-name  { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .meta {
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 0.75rem;
+      text-transform: capitalize;
+    }
+    .recipe-desc {
+      font-size: 0.9rem;
+      color: #AAA;
+      line-height: 1.5;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── Card sections ───────────────────────────────────────────────────── */
+    .section { margin-top: 1rem; }
+    .section h3 {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #555;
+      margin-bottom: 0.6rem;
+    }
+    .ingredients {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .ingredients li { font-size: 0.9rem; color: #DDD; }
+    .amount          { color: #F57C00; font-weight: 600; }
+    .optional        { color: #555; font-size: 0.8rem; }
+    .instructions {
+      padding-left: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .instructions li { font-size: 0.9rem; color: #DDD; line-height: 1.5; }
+
+    /* ── Sticky footer ───────────────────────────────────────────────────── */
+    .footer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #181A1B;
+      border-top: 1px solid #2C2E30;
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .open-btn {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      background: #F57C00;
+      color: #181A1B;
+      text-align: center;
+      padding: 0.85rem 1.5rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .open-btn:hover { opacity: 0.9; }
+    .footer-caption { font-size: 0.7rem; color: #555; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(function () {
+  'use strict';
+
+  /* ── Config (anon key is public — ships in the app binary) ─────────────── */
+  var SUPABASE_URL  = 'https://htipdhmtokbasykpbdki.supabase.co';
+  var SUPABASE_ANON = 'sb_publishable_saZbl3PTFSlHo-fF0S-rPA_gA2OsCf8';
+
+  /* ── Helpers ────────────────────────────────────────────────────────────── */
+
+  /** Extract and normalise the share code from ?code= or #code= */
+  function extractCode() {
+    // 1. Query-string ?code=
+    var qs = new URLSearchParams(window.location.search);
+    var raw = qs.get('code') || '';
+
+    // 2. Hash fallback #code=
+    if (!raw && window.location.hash.indexOf('code=') !== -1) {
+      var hqs = new URLSearchParams(window.location.hash.slice(1));
+      raw = hqs.get('code') || '';
+    }
+
+    // Normalise: trim, uppercase, strip non-alphanumerics
+    return raw.trim().toUpperCase().replace(/[^A-Z2-9]/g, '');
+  }
+
+  /** Validate the normalised code */
+  function isValidCode(code) {
+    return /^[A-Z2-9]{4,20}$/.test(code);
+  }
+
+  /** Check that a URL is http/https before using it as an image src */
+  function isSafeImageUrl(url) {
+    return typeof url === 'string' && /^https?:\/\//i.test(url);
+  }
+
+  /* ── DOM helpers — createElement only, never innerHTML with user data ───── */
+
+  function el(tag, cls) {
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    return node;
+  }
+
+  function text(str) {
+    return document.createTextNode(str != null ? String(str) : '');
+  }
+
+  function setRoot(node) {
+    var root = document.getElementById('root');
+    while (root.firstChild) root.removeChild(root.firstChild);
+    root.appendChild(node);
+  }
+
+  /* ── Render states ──────────────────────────────────────────────────────── */
+
+  function renderLoading() {
+    var wrap = el('div', 'shell');
+    var spinner = el('div', 'spinner');
+    var p = el('p');
+    p.appendChild(text('Loading party menu…'));
+    wrap.appendChild(spinner);
+    wrap.appendChild(p);
+    setRoot(wrap);
+  }
+
+  function renderEnded() {
+    var wrap = el('div', 'shell');
+
+    var icon = el('div', 'shell-icon');
+    icon.appendChild(text('🍸'));
+
+    var h1 = el('h1');
+    h1.appendChild(text('This party has ended'));
+
+    var p = el('p');
+    p.appendChild(text('The menu you’re looking for is no longer available. Ask the host to share a new link.'));
+
+    wrap.appendChild(icon);
+    wrap.appendChild(h1);
+    wrap.appendChild(p);
+    setRoot(wrap);
+  }
+
+  function renderError(onRetry) {
+    var wrap = el('div', 'shell');
+
+    var icon = el('div', 'shell-icon');
+    icon.appendChild(text('⚠️'));
+
+    var h1 = el('h1');
+    h1.appendChild(text('Couldn’t load this party'));
+
+    var p = el('p');
+    p.appendChild(text('Check your connection and try again.'));
+
+    var btn = el('button', 'retry-btn');
+    btn.type = 'button';
+    btn.appendChild(text('Retry'));
+    btn.addEventListener('click', onRetry);
+
+    wrap.appendChild(icon);
+    wrap.appendChild(h1);
+    wrap.appendChild(p);
+    wrap.appendChild(btn);
+    setRoot(wrap);
+  }
+
+  function renderSuccess(party, code) {
+    var frag = document.createDocumentFragment();
+
+    /* Header */
+    var header = el('header', 'header');
+
+    var brand = el('p', 'header-brand');
+    brand.appendChild(text('Cocktella'));
+    header.appendChild(brand);
+
+    var h1 = el('h1', 'party-name');
+    h1.appendChild(text(party.name));
+    header.appendChild(h1);
+
+    if (party.description) {
+      var desc = el('p', 'party-desc');
+      desc.appendChild(text(party.description));
+      header.appendChild(desc);
+    }
+
+    frag.appendChild(header);
+
+    /* Recipe cards */
+    var recipes = (party.menu && Array.isArray(party.menu.recipes))
+      ? party.menu.recipes : [];
+
+    var main = el('main', 'recipes');
+
+    recipes.forEach(function (recipe) {
+      var card = el('article', 'card');
+
+      /* Image — only when scheme-safe */
+      if (isSafeImageUrl(recipe.image_url)) {
+        var img = el('img', 'card-img');
+        img.setAttribute('src', recipe.image_url);  // validated above
+        img.setAttribute('alt', recipe.name != null ? String(recipe.name) : '');
+        img.setAttribute('loading', 'lazy');
+        card.appendChild(img);
+      }
+
+      var body = el('div', 'card-body');
+
+      /* Name */
+      var rname = el('h2', 'recipe-name');
+      rname.appendChild(text(recipe.name));
+      body.appendChild(rname);
+
+      /* Meta line: category · glassware · N% ABV */
+      var metaParts = [];
+      if (recipe.category) metaParts.push(String(recipe.category));
+      if (recipe.glassware) metaParts.push(String(recipe.glassware));
+      if (recipe.abv != null) metaParts.push(String(recipe.abv) + '% ABV');
+      if (metaParts.length) {
+        var meta = el('p', 'meta');
+        meta.appendChild(text(metaParts.join(' · ')));
+        body.appendChild(meta);
+      }
+
+      /* Description */
+      if (recipe.description) {
+        var rdesc = el('p', 'recipe-desc');
+        rdesc.appendChild(text(recipe.description));
+        body.appendChild(rdesc);
+      }
+
+      /* Ingredients */
+      var ings = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+      if (ings.length) {
+        var ingSection = el('section', 'section');
+        var ingH3 = el('h3');
+        ingH3.appendChild(text('Ingredients'));
+        ingSection.appendChild(ingH3);
+
+        var ul = el('ul', 'ingredients');
+        ings.forEach(function (ing) {
+          var li = el('li');
+
+          if (ing.amount != null && ing.amount !== 0) {
+            var amtSpan = el('span', 'amount');
+            amtSpan.appendChild(text(String(ing.amount) + ' ' + String(ing.unit || '')));
+            li.appendChild(amtSpan);
+            li.appendChild(text(' '));
+          }
+
+          li.appendChild(text(String(ing.name || '')));
+
+          if (ing.optional) {
+            li.appendChild(text(' '));
+            var optSpan = el('span', 'optional');
+            optSpan.appendChild(text('(optional)'));
+            li.appendChild(optSpan);
+          }
+
+          ul.appendChild(li);
+        });
+        ingSection.appendChild(ul);
+        body.appendChild(ingSection);
+      }
+
+      /* Instructions */
+      var steps = Array.isArray(recipe.instructions) ? recipe.instructions : [];
+      if (steps.length) {
+        var stepSection = el('section', 'section');
+        var stepH3 = el('h3');
+        stepH3.appendChild(text('Instructions'));
+        stepSection.appendChild(stepH3);
+
+        var ol = el('ol', 'instructions');
+        steps.forEach(function (step) {
+          var li = el('li');
+          li.appendChild(text(String(step)));
+          ol.appendChild(li);
+        });
+        stepSection.appendChild(ol);
+        body.appendChild(stepSection);
+      }
+
+      card.appendChild(body);
+      main.appendChild(card);
+    });
+
+    frag.appendChild(main);
+
+    /* Sticky footer — deep-link uses VALIDATED normalised code */
+    var footer = el('footer', 'footer');
+
+    var openBtn = el('a', 'open-btn');
+    /* code is the validated normalised value — safe to embed in href */
+    openBtn.setAttribute('href', 'cocktella://party/' + encodeURIComponent(code));
+    openBtn.appendChild(text('Open in Cocktella'));
+    footer.appendChild(openBtn);
+
+    var caption = el('p', 'footer-caption');
+    caption.appendChild(text('Get the app — coming soon'));
+    footer.appendChild(caption);
+
+    frag.appendChild(footer);
+
+    setRoot(frag);
+  }
+
+  /* ── Main flow ──────────────────────────────────────────────────────────── */
+
+  var code = extractCode();
+
+  if (!isValidCode(code)) {
+    renderEnded();
+    return;
+  }
+
+  function load() {
+    renderLoading();
+
+    fetch(SUPABASE_URL + '/rest/v1/rpc/get_party_menu', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPABASE_ANON,
+        'Authorization': 'Bearer ' + SUPABASE_ANON,
+      },
+      body: JSON.stringify({ p_share_code: code }),
+    })
+    .then(function (res) {
+      if (!res.ok) {
+        /* Non-2xx from PostgREST — treat as transient error */
+        renderError(load);
+        return;
+      }
+      return res.json().then(function (raw) {
+        /* PostgREST may return the scalar directly or single-element array */
+        var party = Array.isArray(raw) ? (raw[0] || null) : raw;
+        if (!party) {
+          renderEnded();
+        } else {
+          renderSuccess(party, code);
+        }
+      });
+    })
+    .catch(function () {
+      /* Network failure or JSON parse error */
+      renderError(load);
+    });
+  }
+
+  load();
+}());
+</script>
+</body>
+</html>
